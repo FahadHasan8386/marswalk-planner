@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marswalk Planner</title>
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<style>
+  :root {
+    --panel: #eef1f4; --card: #ffffff; --ink: #16202a; --slate: #566370; --line: #d3d9df;
+    --route: #0b7a75; --alt: #2f6fdb; --bad: #d6402f; --warn: #e0a21b; --ok: #1f8f5f;
+    --map-bg: #262c33; --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; font: 15px/1.5 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+         color: var(--ink); background: var(--panel); display: grid;
+         grid-template-columns: minmax(0, 1fr) 390px; grid-template-rows: auto minmax(0, 1fr) 220px;
+         grid-template-areas: "top top" "map side" "prof side"; height: 100vh; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { grid-area: top; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+           padding: 10px 18px; background: var(--ink); color: #f2f5f7; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: .01em; }
+  header p { margin: 0; font-size: 13px; color: #aab6c1; }
+  .data { font-size: 13px; padding: 4px 12px; border-radius: 999px; background: #20303a; color: #bfe9d6; white-space: nowrap; }
+  .data.demo { background: #4a3a12; color: #ffd98a; }
+
+  #mapwrap { grid-area: map; position: relative; min-height: 0; }
+  #map { position: absolute; inset: 0; background: var(--map-bg); }
+  #hint { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); max-width: calc(100% - 32px);
+          background: rgba(22,32,42,.92); color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 14px;
+          pointer-events: none; text-align: center; }
+  #hint[hidden] { display: none; }
+  #legend { position: absolute; left: 12px; bottom: 28px; background: rgba(255,255,255,.94); border-radius: var(--radius);
+            padding: 8px 12px; font-size: 13px; display: grid; gap: 4px; }
+  #legend i { display: inline-block; width: 22px; height: 4px; border-radius: 2px; margin-right: 8px; vertical-align: middle; }
+  #legend .sw { height: 10px; width: 14px; border-radius: 2px; opacity: .85; }
+
+  #profile { grid-area: prof; background: var(--card); border-top: 1px solid var(--line); padding: 8px 16px 10px; min-height: 0;
+             display: flex; flex-direction: column; }
+  #profile h2 { margin: 0 0 2px; font-size: 14px; font-weight: 650; }
+  #profile h2 span { font-weight: 400; color: var(--slate); }
+  .cw { position: relative; flex: 1; min-height: 0; }
+  #pempty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--slate); text-align: center; padding: 0 20px; }
+
+  #side { grid-area: side; overflow-y: auto; padding: 14px; border-left: 1px solid var(--line); display: grid; gap: 12px; align-content: start; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+  .card h2 { margin: 0 0 6px; font-size: 16px; font-weight: 650; }
+  .help { margin: 0 0 10px; color: var(--slate); font-size: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-weight: 600; border: 1px solid var(--line); background: #fff; color: var(--ink);
+           border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: #9aa6b1; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--route); border-color: var(--route); color: #fff; }
+  button.primary:hover:not(:disabled) { background: #096762; }
+  button.alt { background: var(--alt); border-color: var(--alt); color: #fff; }
+  :focus-visible { outline: 3px solid #7aa7ff; outline-offset: 2px; }
+
+  .banner { background: #fff4d6; border: 1px solid #e8c766; border-radius: var(--radius); padding: 10px 12px; font-size: 14px; }
+  .banner code { background: #fff; padding: 1px 5px; border-radius: 4px; }
+
+  .verdict { border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; border-left: 8px solid; }
+  .verdict.pass { background: #e4f4ec; border-color: var(--ok); }
+  .verdict.fail { background: #fbe7e4; border-color: var(--bad); }
+  .verdict b { display: block; font-size: 20px; line-height: 1.2; }
+  .verdict span { font-size: 14px; color: #33404c; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .tile { background: var(--panel); border-radius: 8px; padding: 8px 10px; }
+  .tile small { display: block; color: var(--slate); font-size: 12.5px; }
+  .tile strong { font-size: 22px; font-weight: 650; }
+  .tile strong em { font-size: 13px; font-style: normal; font-weight: 500; color: var(--slate); margin-left: 3px; }
+  ul.checks { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 6px; }
+  ul.checks li { display: grid; grid-template-columns: 22px 1fr; gap: 6px; font-size: 14px; }
+  ul.checks .ic { font-weight: 800; }
+  ul.checks .ok { color: var(--ok); } ul.checks .no { color: var(--bad); }
+  .why { background: #fbe7e4; border-radius: 8px; padding: 8px 10px; margin: 10px 0 0; font-size: 14px; }
+  .fix { margin-top: 12px; }
+
+  details.card summary { cursor: pointer; font-weight: 650; font-size: 16px; }
+  .fields { display: grid; gap: 10px; margin-top: 12px; }
+  .field { display: grid; grid-template-columns: 1fr 96px; gap: 4px 10px; align-items: center; }
+  .field label { font-weight: 600; font-size: 14px; }
+  .field small { grid-column: 1 / 2; color: var(--slate); font-size: 12.5px; line-height: 1.35; }
+  .field .inp { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 5px; }
+  .field input { width: 100%; font: inherit; padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+  .field .u { color: var(--slate); font-size: 12.5px; }
+  .toggles { display: grid; gap: 6px; font-size: 14px; }
+  .toggles label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  footer.credit { font-size: 12.5px; color: var(--slate); padding: 0 4px 10px; }
+
+  @media (max-width: 860px) {
+    body { grid-template-columns: 1fr; grid-template-rows: auto 56vh 200px auto; height: auto; min-height: 100vh;
+           grid-template-areas: "top" "map" "prof" "side"; }
+    #side { border-left: 0; }
+    header p { display: none; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .verdict { animation: pop .25s ease-out; } }
+  @keyframes pop { from { transform: scale(.98); opacity: .5; } to { transform: none; opacity: 1; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Marswalk Planner</h1>
+    <p>Check a spacewalk route across Jezero crater before you go</p>
+  </div>
+  <div id="databadge" class="data">Loading terrain…</div>
+</header>
+
+<div id="mapwrap">
+  <div id="map" aria-label="Map of Jezero crater"></div>
+  <div id="hint" hidden></div>
+  <div id="legend" aria-label="Map legend">
+    <div><i style="background:var(--route)"></i>Your route</div>
+    <div><i style="background:var(--bad)"></i>Too steep on your route</div>
+    <div><i style="background:var(--alt)"></i>Safer route</div>
+    <div id="legend-slope"><i class="sw" style="background:#e1322a"></i>Slope over the limit
+      <br><i class="sw" style="background:#f5be28"></i>Close to the limit</div>
+  </div>
+</div>
+
+<section id="profile">
+  <h2>Elevation along your route <span id="pnote"></span></h2>
+  <div class="cw">
+    <canvas id="chart" aria-label="Elevation profile"></canvas>
+    <div id="pempty">Draw a route on the map and its ups and downs appear here. Steep sections turn red.</div>
+  </div>
+</section>
+
+<aside id="side">
+  <div id="demo-banner" class="banner" hidden></div>
+
+  <section class="card">
+    <h2>Plan a route</h2>
+    <p class="help" id="drawhelp">Your first point is the base or lander. Every check, including the walk back, is measured from it.</p>
+    <div class="row">
+      <button id="draw" class="primary">Draw a route</button>
+      <button id="undo" disabled>Undo last point</button>
+      <button id="clear" disabled>Clear</button>
+    </div>
+  </section>
+
+  <section class="card" id="result" hidden></section>
+  <section class="card" id="result2" hidden></section>
+
+  <section class="card">
+    <h2>Map layers</h2>
+    <div class="toggles">
+      <label><input type="checkbox" id="l-relief" checked> Terrain relief</label>
+      <label><input type="checkbox" id="l-slope" checked> Steep ground (slope hazards)</label>
+    </div>
+  </section>
+
+  <details class="card">
+    <summary>Astronaut and suit assumptions</summary>
+    <p class="help" style="margin-top:8px">These are planning assumptions, not official NASA suit specifications. Change a value and the checks update.</p>
+    <div class="fields" id="assump"></div>
+    <div class="row" style="margin-top:12px"><button id="reset-assump">Reset to defaults</button></div>
+  </details>
+
+  <footer class="credit" id="credit">Terrain data: NASA / JPL / USGS Astrogeology Science Center (Mars 2020 CTX DEM), archived by the NASA Planetary Data System. Browse more layers on NASA Mars Trek.</footer>
+</aside>
+
+<script src="vendor/maplibre-gl.js"></script>
+<script src="vendor/chart.umd.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
