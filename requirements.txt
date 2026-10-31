@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+numpy
+pillow
+pytest
+httpx
+# only needed for the real NASA DEM (GeoTIFF):
+rasterio
