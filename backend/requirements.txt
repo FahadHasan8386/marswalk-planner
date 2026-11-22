@@ -1,0 +1,27 @@
+
+# FastAPI server
+fastapi
+uvicorn[standard]
+
+# Configuration and validation
+python-dotenv
+pydantic
+pydantic-settings
+python-multipart
+
+# Mars geospatial processing
+rasterio
+numpy
+scipy
+pyproj
+shapely
+
+# Data processing
+pandas
+
+# Gemini API
+google-genai
+
+# Testing
+pytest
+httpx

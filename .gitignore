@@ -1,5 +1,42 @@
-cache/
-__pycache__/
-*.pyc
-.pytest_cache/
+
+# Python environments
+venv/
+env/
 .venv/
+backend/venv/
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Node dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+
+# Model artifacts
+*.pth
+*.pt
+model_artifacts/
+backend/model_artifacts/
