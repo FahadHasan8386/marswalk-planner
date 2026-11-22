@@ -1,0 +1,37 @@
+{
+    "dem": {
+        "filename": "jezero_dem_cropped.tif",
+        "width": 4000,
+        "height": 4000,
+        "count": 1,
+        "crs": "ESRI:104971",
+        "bounds": {
+            "left": 77.22675714928594,
+            "bottom": 18.10129159942011,
+            "right": 77.2959541836755,
+            "top": 18.170488633809672
+        },
+        "resolution": [
+            1.7299258597390475e-05,
+            1.7299258597390553e-05
+        ],
+        "nodata": -3.4028226550889045e+38,
+        "dtype": "float32"
+    },
+    "ortho": {
+        "filename": "jezero_ortho_cropped.tif",
+        "width": 4000,
+        "height": 4000,
+        "crs": "GEOGCS[\"GCS_Mars_2000_sphere\",DATUM[\"D_custom\",SPHEROID[\"custom\",3396190,0]],PRIMEM[\"Reference_Meridian\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST]]",
+        "bounds": {
+            "left": 77.22675714928594,
+            "bottom": 18.10129159942011,
+            "right": 77.2959541836755,
+            "top": 18.170488633809672
+        },
+        "resolution": [
+            1.7299258597390475e-05,
+            1.7299258597390553e-05
+        ]
+    }
+}
